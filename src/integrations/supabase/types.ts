@@ -16,6 +16,10 @@ export type Database = {
     Tables: {
       analyses: {
         Row: {
+          analysis_explicit: string | null
+          analysis_hedging: string | null
+          analysis_implied: string | null
+          analyzed_at: string | null
           created_at: string
           id: string
           name: string
@@ -23,6 +27,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          analysis_explicit?: string | null
+          analysis_hedging?: string | null
+          analysis_implied?: string | null
+          analyzed_at?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -30,6 +38,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          analysis_explicit?: string | null
+          analysis_hedging?: string | null
+          analysis_implied?: string | null
+          analyzed_at?: string | null
           created_at?: string
           id?: string
           name?: string

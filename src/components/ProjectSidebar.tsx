@@ -166,7 +166,7 @@ const ProjectSidebar = () => {
                             >
                               <EditableText
                                 value={analysis.name}
-                                onSave={(name) => updateAnalysis(analysis.id, name)}
+                                onSave={(name) => updateAnalysis(analysis.id, { name })}
                                 className="text-[11px] text-foreground/70 truncate block"
                               />
                             </div>

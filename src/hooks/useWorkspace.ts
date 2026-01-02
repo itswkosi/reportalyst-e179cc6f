@@ -17,6 +17,10 @@ export interface Analysis {
   project_id: string;
   name: string;
   created_at: string;
+  analysis_explicit?: string | null;
+  analysis_implied?: string | null;
+  analysis_hedging?: string | null;
+  analyzed_at?: string | null;
 }
 
 export interface Dataset {
@@ -288,17 +292,17 @@ export const useWorkspace = () => {
     }
   };
 
-  const updateAnalysis = async (id: string, name: string) => {
+  const updateAnalysis = async (id: string, updates: Partial<Pick<Analysis, "name" | "analysis_explicit" | "analysis_implied" | "analysis_hedging" | "analyzed_at">>) => {
     // Optimistic update
     const previousAnalyses = [...analyses];
     setAnalyses((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, name } : a))
+      prev.map((a) => (a.id === id ? { ...a, ...updates } : a))
     );
     
     try {
       const { error } = await supabase
         .from("analyses")
-        .update({ name })
+        .update(updates)
         .eq("id", id);
       
       if (error) throw error;
