@@ -50,10 +50,10 @@ const Landing = () => {
           </div>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/auth">Sign In</Link>
+              <Link to="/auth" state={{ fromLanding: true, mode: "login" }}>Sign In</Link>
             </Button>
             <Button size="sm" asChild>
-              <Link to="/auth">Sign Up</Link>
+              <Link to="/auth" state={{ fromLanding: true, mode: "signup" }}>Sign Up</Link>
             </Button>
           </div>
         </div>
@@ -73,7 +73,7 @@ const Landing = () => {
             </p>
             <div className="flex items-center justify-center gap-4">
               <Button size="lg" asChild>
-                <Link to="/auth">Get Started</Link>
+                <Link to="/auth" state={{ fromLanding: true, mode: "signup" }}>Get Started</Link>
               </Button>
               <Button variant="outline" size="lg" className="gap-2">
                 <Play className="h-4 w-4" />

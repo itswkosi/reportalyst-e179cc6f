@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,13 +21,30 @@ const Auth = () => {
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  const navState = (location.state ?? null) as
+    | { fromLanding?: boolean; mode?: "login" | "signup" }
+    | null;
+  const isAllowedToViewAuth = Boolean(navState?.fromLanding);
+
+  useEffect(() => {
+    if (navState?.mode === "signup") setIsLogin(false);
+    if (navState?.mode === "login") setIsLogin(true);
+  }, [navState?.mode]);
 
   useEffect(() => {
     if (!loading && user) {
       navigate("/app");
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (!loading && !user && !isAllowedToViewAuth) {
+      navigate("/", { replace: true });
+    }
+  }, [user, loading, navigate, isAllowedToViewAuth]);
 
   if (loading) {
     return (
@@ -38,6 +55,10 @@ const Auth = () => {
   }
 
   if (user) {
+    return null;
+  }
+
+  if (!isAllowedToViewAuth) {
     return null;
   }
 
