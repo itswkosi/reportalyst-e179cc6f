@@ -11,6 +11,7 @@ export interface Profile {
   role: AppRole | null;
   last_login_at: string | null;
   last_project_id: string | null;
+  avatar_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -61,7 +62,7 @@ export const useProfile = () => {
     fetchProfile();
   }, [fetchProfile]);
 
-  const updateProfile = async (updates: Partial<Pick<Profile, "display_name" | "role" | "last_project_id">>) => {
+  const updateProfile = async (updates: Partial<Pick<Profile, "display_name" | "role" | "last_project_id" | "avatar_url">>) => {
     if (!user) return;
     
     const { error } = await supabase
