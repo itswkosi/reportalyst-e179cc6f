@@ -44,6 +44,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "analyses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "shared_projects_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       audit_logs: {
@@ -112,6 +119,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "datasets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "shared_projects_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -151,6 +165,13 @@ export type Database = {
             columns: ["last_project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_last_project_id_fkey"
+            columns: ["last_project_id"]
+            isOneToOne: false
+            referencedRelation: "shared_projects_view"
             referencedColumns: ["id"]
           },
         ]
@@ -249,9 +270,49 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      shared_projects_view: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string | null
+          is_public: boolean | null
+          name: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_public?: boolean | null
+          name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_public?: boolean | null
+          name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      get_project_by_share_token: {
+        Args: { token: string }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          is_public: boolean
+          name: string
+          updated_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
