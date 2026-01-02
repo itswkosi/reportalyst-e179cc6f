@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,12 @@ import { validatePassword, getAuthErrorMessage } from "@/lib/passwordValidation"
 import { ArrowLeft, Camera, Check, X, Eye, EyeOff, Loader2 } from "lucide-react";
 
 const Settings = () => {
+  usePageMeta({
+    title: "User Settings | Reportalyst",
+    description: "Manage your Reportalyst account settings, display name, password, and profile picture.",
+    canonicalPath: "/settings",
+  });
+
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading, updateProfile, refetch } = useProfile();
   const navigate = useNavigate();
@@ -66,8 +73,29 @@ const Settings = () => {
     );
   }
 
-  if (!user || !profile) {
+  if (!user) {
     return null;
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-2xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your settings aren’t available yet</CardTitle>
+              <CardDescription>
+                We couldn’t load your profile record. Refreshing usually resolves this.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={() => window.location.reload()}>Retry</Button>
+              <Button variant="outline" onClick={() => navigate("/app")}>Back to Workspace</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   const initials = (displayName || user.email?.split("@")[0] || "U").slice(0, 2).toUpperCase();

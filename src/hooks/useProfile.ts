@@ -30,6 +30,8 @@ export const useProfile = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async () => {
+    setLoading(true);
+
     if (!user) {
       setProfile(null);
       setRoles([]);
@@ -42,19 +44,35 @@ export const useProfile = () => {
         .from("profiles")
         .select("*")
         .eq("user_id", user.id)
-        .single(),
+        .maybeSingle(),
       supabase
         .from("user_roles")
         .select("*")
         .eq("user_id", user.id),
     ]);
 
-    if (profileRes.data) {
-      setProfile(profileRes.data as Profile);
+    // If the user has no profile row yet, create one so profile/settings pages don't render blank.
+    let nextProfile = (profileRes.data as Profile | null) ?? null;
+
+    if (!nextProfile && !profileRes.error) {
+      const fallbackName = user.email?.split("@")[0] ?? null;
+      const createRes = await supabase
+        .from("profiles")
+        .insert({ user_id: user.id, display_name: fallbackName })
+        .select("*")
+        .single();
+
+      nextProfile = (createRes.data as Profile | null) ?? null;
     }
+
+    setProfile(nextProfile);
+
     if (rolesRes.data) {
       setRoles(rolesRes.data as UserRole[]);
+    } else {
+      setRoles([]);
     }
+
     setLoading(false);
   }, [user]);
 
