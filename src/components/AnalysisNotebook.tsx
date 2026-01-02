@@ -258,9 +258,9 @@ const AnalysisNotebook = () => {
         throw new Error("Failed to get authentication session");
       }
 
-      const token = sessionData?.session?.access_token;
+      const session = sessionData?.session;
 
-      if (!token) {
+      if (!session?.access_token) {
         setAnalysisState({
           status: "error",
           result: null,
@@ -270,38 +270,58 @@ const AnalysisNotebook = () => {
       }
 
       // ============================================================
-      // CALL EDGE FUNCTION
-      // Invoke the analyze-report function with explicit auth header
+      // CALL EDGE FUNCTION DIRECTLY VIA FETCH
+      // Using fetch() to have full control over headers
       // ============================================================
-      const { data, error } = await supabase.functions.invoke("analyze-report", {
-        body: { reportText },
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-report`;
+      
+      const response = await fetch(functionUrl, {
+        method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Authorization": `Bearer ${session.access_token}`,
+          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ reportText }),
       });
 
       // ============================================================
+      // PARSE RESPONSE SAFELY
+      // Read raw text first, then attempt JSON parse
+      // ============================================================
+      const rawBody = await response.text();
+      
+      let data: Record<string, unknown> | null = null;
+      try {
+        data = JSON.parse(rawBody);
+      } catch {
+        console.error("Failed to parse response as JSON:", rawBody.slice(0, 200));
+      }
+
+      // ============================================================
       // ERROR HANDLING
-      // Check for Edge Function errors or error responses
+      // Check for non-2xx status codes
       // ============================================================
-      if (error) {
-        console.error("Edge function invocation error:", error);
-        throw new Error(error.message || "Failed to connect to analysis service");
+      if (!response.ok) {
+        const errorMessage = (data?.error as string) || 
+          `Request failed with status ${response.status}`;
+        console.error("Edge function error:", response.status, errorMessage);
+        throw new Error(errorMessage);
       }
 
-      // Check if the response body contains an error
+      // Check if the response body contains an error field
       if (data?.error) {
-        throw new Error(data.error);
+        throw new Error(data.error as string);
       }
 
       // ============================================================
-      // PARSE RESPONSE
+      // EXTRACT RESULTS
       // Safely extract analysis results from response
       // ============================================================
       const result: AnalysisResult = {
-        explicit: data?.explicit || "",
-        implied: data?.implied || "",
-        hedging: data?.hedging || "",
+        explicit: String(data?.explicit || ""),
+        implied: String(data?.implied || ""),
+        hedging: String(data?.hedging || ""),
       };
 
       // Set success state with parsed results
