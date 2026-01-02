@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, ChevronDown, Folder, FolderOpen } from "lucide-react";
+import { ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TreeItem {
@@ -11,18 +11,18 @@ interface TreeItem {
 
 const projectTree: TreeItem[] = [
   {
-    id: "1",
+    id: "panecho",
     name: "PanEcho",
     type: "folder",
     children: [
-      { id: "1-1", name: "Dataset A (TCIA)", type: "file" },
+      { id: "dataset-a", name: "Dataset A (TCIA)", type: "file" },
       {
-        id: "1-2",
+        id: "baseline-radiomics",
         name: "Baseline Radiomics",
         type: "folder",
         children: [
-          { id: "1-2-1", name: "With Wavelet Features", type: "file" },
-          { id: "1-2-2", name: "Leakage Test", type: "file" },
+          { id: "wavelet-features", name: "With Wavelet Features", type: "file" },
+          { id: "leakage-test", name: "Leakage Test", type: "file" },
         ],
       },
     ],
@@ -37,7 +37,7 @@ interface TreeNodeProps {
 }
 
 const TreeNode = ({ item, level, selectedId, onSelect }: TreeNodeProps) => {
-  const [isOpen, setIsOpen] = useState(level === 0);
+  const [isOpen, setIsOpen] = useState(level === 0 || level === 1);
   const hasChildren = item.children && item.children.length > 0;
   const isSelected = selectedId === item.id;
 
@@ -49,29 +49,22 @@ const TreeNode = ({ item, level, selectedId, onSelect }: TreeNodeProps) => {
           onSelect(item.id);
         }}
         className={cn(
-          "w-full flex items-center gap-1 py-1.5 px-2 text-left text-sm rounded-sm transition-colors",
-          "hover:bg-accent/50",
-          isSelected && "bg-accent text-foreground font-medium"
+          "w-full flex items-center gap-1.5 py-1.5 px-2 text-left text-xs rounded-sm transition-colors",
+          "hover:bg-muted/50 text-muted-foreground",
+          isSelected && "bg-muted/70 text-foreground font-medium"
         )}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
       >
         {hasChildren ? (
           isOpen ? (
-            <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+            <ChevronDown className="h-3 w-3 opacity-50 shrink-0" />
           ) : (
-            <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+            <ChevronRight className="h-3 w-3 opacity-50 shrink-0" />
           )
         ) : (
           <span className="w-3" />
         )}
-        {item.type === "folder" ? (
-          isOpen ? (
-            <FolderOpen className="h-3.5 w-3.5 text-primary shrink-0" />
-          ) : (
-            <Folder className="h-3.5 w-3.5 text-primary shrink-0" />
-          )
-        ) : null}
-        <span className="truncate text-foreground/80">{item.name}</span>
+        <span className="truncate">{item.name}</span>
       </button>
       {hasChildren && isOpen && (
         <div>
@@ -91,16 +84,16 @@ const TreeNode = ({ item, level, selectedId, onSelect }: TreeNodeProps) => {
 };
 
 const ProjectSidebar = () => {
-  const [selectedId, setSelectedId] = useState("1-2");
+  const [selectedId, setSelectedId] = useState("baseline-radiomics");
 
   return (
-    <aside className="w-48 shrink-0 border-r border-border/50 bg-card/30 overflow-y-auto">
-      <div className="p-4 border-b border-border/50">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <aside className="w-44 shrink-0 border-r border-border/30 bg-background/50 overflow-y-auto opacity-80 hover:opacity-100 transition-opacity">
+      <div className="p-3 border-b border-border/30">
+        <h2 className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">
           Projects
         </h2>
       </div>
-      <div className="p-2">
+      <div className="p-1.5">
         {projectTree.map((item) => (
           <TreeNode
             key={item.id}
