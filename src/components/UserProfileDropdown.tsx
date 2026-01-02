@@ -24,7 +24,7 @@ const UserProfileDropdown = () => {
   };
 
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "User";
-  const email = profile?.email || user?.email || "";
+  const email = user?.email || "";
   const initials = displayName.slice(0, 2).toUpperCase();
   const primaryRole = roles[0]?.role || profile?.role || "student";
 
