@@ -12,7 +12,7 @@ Important signals, implied concerns, and legal hedging are often blended togethe
 
 This problem shows up daily and is rarely addressed because it does not involve prediction or diagnosis, just clarity.
 
-What this project does
+# *What this project does*
 
 Reportalyst takes a PDAC-related radiology report excerpt and separates the language into three fixed categories:
 
@@ -55,7 +55,7 @@ Highlighting uncertainty density across reports
 Integration into existing clinical documentation workflows
 No diagnostic or treatment functionality is planned.
 
-This project is built with Lovable using:
+# This project is built with Lovable using:
 
 - Vite
 - TypeScript
