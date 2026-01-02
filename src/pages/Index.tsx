@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import OutputSection from "@/components/OutputSection";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
+  const { toast } = useToast();
   const [reportText, setReportText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState({
@@ -17,14 +20,47 @@ const Index = () => {
     if (!reportText.trim()) return;
     
     setIsAnalyzing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    setResults({
-      explicit: "Analysis results will appear here when connected to an AI backend.",
-      implied: "Implied concerns from the report will be identified here.",
-      hedging: "Hedging or non-actionable language will be highlighted here.",
-    });
-    setIsAnalyzing(false);
+    setResults({ explicit: "", implied: "", hedging: "" });
+
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-report", {
+        body: { reportText: reportText.trim() },
+      });
+
+      if (error) {
+        console.error("Analysis error:", error);
+        toast({
+          title: "Analysis failed",
+          description: error.message || "Unable to analyze the report. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data.error) {
+        toast({
+          title: "Analysis error",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setResults({
+        explicit: data.explicit || "None stated.",
+        implied: data.implied || "None stated.",
+        hedging: data.hedging || "None stated.",
+      });
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -58,7 +94,11 @@ const Index = () => {
                 size="sm"
                 className="gap-2"
               >
-                <Search className="h-3.5 w-3.5" />
+                {isAnalyzing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Search className="h-3.5 w-3.5" />
+                )}
                 {isAnalyzing ? "Analyzing..." : "Clarify report language"}
               </Button>
             </div>
