@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { ChevronRight, ChevronDown, Plus, Trash2, FileText, Database } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ChevronRight, ChevronDown, Plus, Trash2, FileText, Database, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/hooks/useAuth";
 import EditableText from "./EditableText";
 
 const ProjectSidebar = () => {
@@ -53,9 +55,29 @@ const ProjectSidebar = () => {
     }
   };
 
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
+
   return (
     <aside className="w-52 shrink-0 border-r border-border/20 overflow-y-auto flex flex-col">
-      <div className="p-4 pt-6 flex-1">
+      {/* Header with app name and sign out */}
+      <div className="p-4 pb-2 border-b border-border/20 flex items-center justify-between">
+        <span className="text-sm font-medium text-foreground">Reportalyst</span>
+        <button
+          onClick={handleSignOut}
+          className="p-1.5 hover:bg-muted/50 rounded transition-colors text-muted-foreground/60 hover:text-foreground"
+          title="Sign out"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <div className="p-4 pt-4 flex-1">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[10px] uppercase tracking-wider text-muted-foreground/40">
             Projects
