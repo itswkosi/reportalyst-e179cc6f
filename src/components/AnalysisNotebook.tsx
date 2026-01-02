@@ -203,6 +203,7 @@ const AnalysisNotebook = () => {
     createSection,
     updateSection,
     deleteSection,
+    updateAnalysis,
     isSaving,
   } = useWorkspaceContext();
 
@@ -214,6 +215,28 @@ const AnalysisNotebook = () => {
     result: null,
     error: null,
   });
+
+  // Load saved analysis results when switching analyses
+  useEffect(() => {
+    if (selectedAnalysis?.analyzed_at && selectedAnalysis.analysis_explicit !== undefined) {
+      setAnalysisState({
+        status: "success",
+        result: {
+          explicit: selectedAnalysis.analysis_explicit || "",
+          implied: selectedAnalysis.analysis_implied || "",
+          hedging: selectedAnalysis.analysis_hedging || "",
+        },
+        error: null,
+      });
+    } else {
+      // Reset to idle when switching to an analysis without saved results
+      setAnalysisState({
+        status: "idle",
+        result: null,
+        error: null,
+      });
+    }
+  }, [selectedAnalysis?.id, selectedAnalysis?.analyzed_at, selectedAnalysis?.analysis_explicit, selectedAnalysis?.analysis_implied, selectedAnalysis?.analysis_hedging]);
 
   // ============================================================
   // ANALYZE REPORT HANDLER
@@ -324,6 +347,19 @@ const AnalysisNotebook = () => {
         hedging: String(data?.hedging || ""),
       };
 
+      // ============================================================
+      // SAVE RESULTS TO DATABASE
+      // Persist analysis results to the current analysis record
+      // ============================================================
+      if (selectedAnalysis) {
+        await updateAnalysis(selectedAnalysis.id, {
+          analysis_explicit: result.explicit,
+          analysis_implied: result.implied,
+          analysis_hedging: result.hedging,
+          analyzed_at: new Date().toISOString(),
+        });
+      }
+
       // Set success state with parsed results
       setAnalysisState({
         status: "success",
@@ -333,7 +369,7 @@ const AnalysisNotebook = () => {
 
       toast({
         title: "Analysis complete",
-        description: "Report has been analyzed successfully.",
+        description: "Report has been analyzed and saved.",
       });
 
     } catch (err: unknown) {
