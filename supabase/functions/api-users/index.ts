@@ -189,7 +189,8 @@ Deno.serve(async (req) => {
       }
 
       const updates = await req.json();
-      const allowedFields = ["display_name", "role"];
+      // Only allow display_name updates - role changes must go through admin functions via user_roles table
+      const allowedFields = ["display_name"];
       const sanitizedUpdates: Record<string, string> = {};
       
       for (const field of allowedFields) {
