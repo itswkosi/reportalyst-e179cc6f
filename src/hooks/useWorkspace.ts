@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
+import { useProfile } from "./useProfile";
 
 export interface Project {
   id: string;
@@ -38,14 +39,24 @@ export interface Section {
 export const useWorkspace = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { profile, updateLastProject } = useProfile();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectIdState] = useState<string | null>(null);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null);
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [initialProjectRestored, setInitialProjectRestored] = useState(false);
+
+  // Wrapper to also save last project to profile
+  const setSelectedProjectId = useCallback((id: string | null) => {
+    setSelectedProjectIdState(id);
+    if (id) {
+      updateLastProject(id);
+    }
+  }, [updateLastProject]);
 
   // Fetch projects
   const fetchProjects = useCallback(async () => {
@@ -133,6 +144,19 @@ export const useWorkspace = () => {
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
+
+  // Restore last opened project after projects are loaded
+  useEffect(() => {
+    if (!initialProjectRestored && projects.length > 0 && profile?.last_project_id) {
+      const lastProject = projects.find(p => p.id === profile.last_project_id);
+      if (lastProject) {
+        setSelectedProjectIdState(lastProject.id);
+      }
+      setInitialProjectRestored(true);
+    } else if (!initialProjectRestored && projects.length > 0) {
+      setInitialProjectRestored(true);
+    }
+  }, [projects, profile?.last_project_id, initialProjectRestored]);
 
   useEffect(() => {
     fetchProjectContent();

@@ -11,6 +11,7 @@ export interface Profile {
   email: string | null;
   role: AppRole | null;
   last_login_at: string | null;
+  last_project_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -61,7 +62,7 @@ export const useProfile = () => {
     fetchProfile();
   }, [fetchProfile]);
 
-  const updateProfile = async (updates: Partial<Pick<Profile, "display_name" | "role">>) => {
+  const updateProfile = async (updates: Partial<Pick<Profile, "display_name" | "role" | "last_project_id">>) => {
     if (!user) return;
     
     const { error } = await supabase
@@ -73,6 +74,17 @@ export const useProfile = () => {
       setProfile((prev) => prev ? { ...prev, ...updates } : null);
     }
     return { error };
+  };
+
+  const updateLastProject = async (projectId: string | null) => {
+    if (!user) return;
+    
+    await supabase
+      .from("profiles")
+      .update({ last_project_id: projectId })
+      .eq("user_id", user.id);
+    
+    setProfile((prev) => prev ? { ...prev, last_project_id: projectId } : null);
   };
 
   const updateLastLogin = async () => {
@@ -96,6 +108,7 @@ export const useProfile = () => {
     loading,
     updateProfile,
     updateLastLogin,
+    updateLastProject,
     hasRole,
     isAdmin,
     refetch: fetchProfile,
