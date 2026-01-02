@@ -121,6 +121,7 @@ export type Database = {
           email: string | null
           id: string
           last_login_at: string | null
+          last_project_id: string | null
           role: Database["public"]["Enums"]["app_role"] | null
           updated_at: string
           user_id: string
@@ -131,6 +132,7 @@ export type Database = {
           email?: string | null
           id?: string
           last_login_at?: string | null
+          last_project_id?: string | null
           role?: Database["public"]["Enums"]["app_role"] | null
           updated_at?: string
           user_id: string
@@ -141,11 +143,20 @@ export type Database = {
           email?: string | null
           id?: string
           last_login_at?: string | null
+          last_project_id?: string | null
           role?: Database["public"]["Enums"]["app_role"] | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_last_project_id_fkey"
+            columns: ["last_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {

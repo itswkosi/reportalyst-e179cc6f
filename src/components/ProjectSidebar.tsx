@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ChevronRight, ChevronDown, Plus, Trash2, FileText, Database, LogOut } from "lucide-react";
+import { ChevronRight, ChevronDown, Plus, Trash2, FileText, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
-import { useAuth } from "@/hooks/useAuth";
 import EditableText from "./EditableText";
+import UserProfileDropdown from "./UserProfileDropdown";
 
 const ProjectSidebar = () => {
   const {
@@ -55,26 +54,12 @@ const ProjectSidebar = () => {
     }
   };
 
-  const { signOut } = useAuth();
-  const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
-
   return (
     <aside className="w-52 shrink-0 border-r border-border/20 overflow-y-auto flex flex-col">
-      {/* Header with app name and sign out */}
+      {/* Header with app name and user profile */}
       <div className="p-4 pb-2 border-b border-border/20 flex items-center justify-between">
         <span className="text-sm font-medium text-foreground">Reportalyst</span>
-        <button
-          onClick={handleSignOut}
-          className="p-1.5 hover:bg-muted/50 rounded transition-colors text-muted-foreground/60 hover:text-foreground"
-          title="Sign out"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-        </button>
+        <UserProfileDropdown />
       </div>
 
       <div className="p-4 pt-4 flex-1">
