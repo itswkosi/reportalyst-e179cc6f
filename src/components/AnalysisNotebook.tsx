@@ -139,7 +139,15 @@ const AnalysisNotebook = () => {
       });
 
       if (error) {
-        throw new Error(error.message || "Analysis failed");
+        console.error("Edge function error:", error);
+        // Handle FunctionsHttpError which has a context property
+        const errorMessage = error.message || "Analysis failed";
+        throw new Error(errorMessage);
+      }
+
+      // Check if the response contains an error field
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       setAnalysisResult(data);
