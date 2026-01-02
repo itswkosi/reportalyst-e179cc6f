@@ -29,8 +29,15 @@ Rules for classification:
 - Extract uncertainty, legal, or cautious phrases that limit certainty but do not state a finding
 - List these phrases verbatim when possible
 
+**Plain-language summary of uncertainty** (optional)
+- Write 1–2 sentences only
+- Emphasize uncertainty rather than conclusions
+- Describe how the report reads, not what it means clinically
+- Avoid diagnostic, prognostic, or action-oriented language
+- If a neutral summary cannot be written safely, set this field to null
+
 Output requirements:
-- Use concise bullet points
+- Use concise bullet points for the three categories
 - Do not mirror the original sentence structure
 - Perform one level of abstraction: convert descriptive phrases into short, neutral concepts
 - Separate physical observations from interpretive language
@@ -43,7 +50,8 @@ Respond in this exact JSON format:
 {
   "explicit": "• bullet point 1\\n• bullet point 2",
   "implied": "• bullet point 1\\n• bullet point 2",
-  "hedging": "• bullet point 1\\n• bullet point 2"
+  "hedging": "• bullet point 1\\n• bullet point 2",
+  "summary": "1-2 sentence plain-language summary of uncertainty, or null if unsafe to summarize"
 }`;
 
 serve(async (req) => {
