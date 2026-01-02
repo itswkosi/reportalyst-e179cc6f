@@ -9,10 +9,20 @@ export const useAuth = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Update last login on sign in
+        if (event === "SIGNED_IN" && session?.user) {
+          setTimeout(() => {
+            supabase
+              .from("profiles")
+              .update({ last_login_at: new Date().toISOString() })
+              .eq("user_id", session.user.id);
+          }, 0);
+        }
       }
     );
 
