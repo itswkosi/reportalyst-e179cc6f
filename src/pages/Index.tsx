@@ -27,7 +27,8 @@ const Index = () => {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/auth");
+      // Unauthenticated users should land on the public landing page.
+      navigate("/", { replace: true });
     }
   }, [user, loading, navigate]);
 
