@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,6 +36,36 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check - require Authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.log("Request rejected: No authorization header");
+      return new Response(
+        JSON.stringify({ error: "Authorization required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify the user with Supabase
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.log("Request rejected: Invalid or expired token", userError?.message);
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired authentication token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Authenticated user:", user.id);
+
     const { reportText } = await req.json();
 
     // Input validation with length limits
@@ -70,7 +101,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Analyzing report, length:", trimmedText.length);
+    console.log("Analyzing report for user:", user.id, "length:", trimmedText.length);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -113,7 +144,7 @@ serve(async (req) => {
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
 
-    console.log("AI response received");
+    console.log("AI response received for user:", user.id);
 
     // Parse JSON from response
     let result;
@@ -139,7 +170,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in analyze-report:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An error occurred processing your request" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
