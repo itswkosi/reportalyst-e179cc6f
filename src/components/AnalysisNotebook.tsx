@@ -131,16 +131,23 @@ const AnalysisNotebook = () => {
           description: "Please sign in to analyze reports.",
           variant: "destructive",
         });
+        setIsAnalyzing(false);
         return;
       }
 
+      console.log("Calling analyze-report with token present:", !!token);
+
       const { data, error } = await supabase.functions.invoke("analyze-report", {
         body: { reportText },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
+
+      console.log("Response:", { data, error });
 
       if (error) {
         console.error("Edge function error:", error);
-        // Handle FunctionsHttpError which has a context property
         const errorMessage = error.message || "Analysis failed";
         throw new Error(errorMessage);
       }
