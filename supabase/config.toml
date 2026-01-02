@@ -1,7 +1,7 @@
 project_id = "lbvbobmcpnaxcpqxkoxy"
 
 [functions.analyze-report]
-verify_jwt = false
+verify_jwt = true
 
 [functions.api-users]
 verify_jwt = false
