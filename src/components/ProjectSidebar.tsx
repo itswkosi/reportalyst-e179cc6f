@@ -87,22 +87,22 @@ const ProjectSidebar = () => {
   const [selectedId, setSelectedId] = useState("baseline-radiomics");
 
   return (
-    <aside className="w-44 shrink-0 border-r border-border/30 bg-background/50 overflow-y-auto opacity-80 hover:opacity-100 transition-opacity">
-      <div className="p-3 border-b border-border/30">
-        <h2 className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">
+    <aside className="w-40 shrink-0 border-r border-border/20 overflow-y-auto">
+      <div className="p-4 pt-12">
+        <h2 className="text-[10px] uppercase tracking-wider text-muted-foreground/40 mb-3">
           Projects
         </h2>
-      </div>
-      <div className="p-1.5">
-        {projectTree.map((item) => (
-          <TreeNode
-            key={item.id}
-            item={item}
-            level={0}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-          />
-        ))}
+        <div>
+          {projectTree.map((item) => (
+            <TreeNode
+              key={item.id}
+              item={item}
+              level={0}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+            />
+          ))}
+        </div>
       </div>
     </aside>
   );
