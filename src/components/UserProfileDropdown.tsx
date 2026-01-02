@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
 const UserProfileDropdown = () => {
@@ -40,6 +40,7 @@ const UserProfileDropdown = () => {
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-2 p-1.5 hover:bg-muted/50 rounded transition-colors">
           <Avatar className="h-6 w-6">
+            <AvatarImage src={profile?.avatar_url ?? undefined} alt={displayName} />
             <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
               {initials}
             </AvatarFallback>
@@ -57,11 +58,11 @@ const UserProfileDropdown = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="gap-2 cursor-pointer">
+        <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-2 cursor-pointer">
           <User className="h-3.5 w-3.5" />
           <span className="text-sm">Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className="gap-2 cursor-pointer">
+        <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2 cursor-pointer">
           <Settings className="h-3.5 w-3.5" />
           <span className="text-sm">Settings</span>
         </DropdownMenuItem>
