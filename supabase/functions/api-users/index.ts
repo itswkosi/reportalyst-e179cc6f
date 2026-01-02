@@ -53,8 +53,10 @@ Deno.serve(async (req) => {
 
       if (authError) {
         console.error("Signup error:", authError);
+        // Return generic error to avoid revealing system details
+        const isEmailTaken = authError.message?.toLowerCase().includes("already registered");
         return new Response(
-          JSON.stringify({ error: authError.message }),
+          JSON.stringify({ error: isEmailTaken ? "An account with this email already exists" : "Failed to create account" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
