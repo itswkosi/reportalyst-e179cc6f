@@ -15,6 +15,7 @@ interface AnalysisResult {
   explicit: string;
   implied: string;
   hedging: string;
+  summary: string | null;
 }
 
 interface AnalysisState {
@@ -150,6 +151,18 @@ const AnalysisResults = ({ state }: { state: AnalysisState }) => {
         </div>
         
         <div className="space-y-3 text-sm">
+          {/* Plain-language Summary (if present) */}
+          {state.result.summary && (
+            <div className="bg-background/50 rounded p-3 border-l-2 border-primary/40">
+              <h4 className="text-xs font-medium text-foreground/80 mb-1.5">
+                Plain-language Summary
+              </h4>
+              <p className="text-muted-foreground/80 text-xs leading-relaxed italic">
+                {state.result.summary}
+              </p>
+            </div>
+          )}
+
           {/* Explicit Findings */}
           <div className="bg-background/50 rounded p-3">
             <h4 className="text-xs font-medium text-foreground/80 mb-1.5 flex items-center gap-1.5">
@@ -225,6 +238,7 @@ const AnalysisNotebook = () => {
           explicit: selectedAnalysis.analysis_explicit || "",
           implied: selectedAnalysis.analysis_implied || "",
           hedging: selectedAnalysis.analysis_hedging || "",
+          summary: null, // Summary not persisted to DB yet
         },
         error: null,
       });
@@ -345,6 +359,7 @@ const AnalysisNotebook = () => {
         explicit: String(data?.explicit || ""),
         implied: String(data?.implied || ""),
         hedging: String(data?.hedging || ""),
+        summary: data?.summary ? String(data.summary) : null,
       };
 
       // ============================================================
