@@ -30,11 +30,15 @@ Rules for classification:
 - List these phrases verbatim when possible
 
 **Plain-language summary of uncertainty** (optional)
-- Write 1–2 sentences only
-- Emphasize uncertainty rather than conclusions
-- Describe how the report reads, not what it means clinically
-- Avoid diagnostic, prognostic, or action-oriented language
-- If a neutral summary cannot be written safely, set this field to null
+- This summary is for a non-medical reader
+- The goal is to translate certainty and uncertainty into everyday language, not to explain medical significance
+- Use simple, non-technical words
+- Be 1–2 sentences only
+- Describe what is clearly seen versus what is uncertain
+- Avoid conclusions, diagnoses, reassurance, or urgency
+- Do NOT explain what the findings mean clinically
+- Do NOT suggest what should happen next
+- If a neutral lay summary cannot be written safely, set this field to null
 
 Output requirements:
 - Use concise bullet points for the three categories
