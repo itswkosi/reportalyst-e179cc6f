@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,9 +11,14 @@ import { Separator } from "@/components/ui/separator";
 import { Settings, FolderOpen, Clock, Calendar, User } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
 
 const Profile = () => {
+  usePageMeta({
+    title: "User Profile | Reportalyst",
+    description: "View your Reportalyst user profile, role, and activity metrics.",
+    canonicalPath: "/profile",
+  });
+
   const { user, loading: authLoading } = useAuth();
   const { profile, roles, loading: profileLoading } = useProfile();
   const navigate = useNavigate();
@@ -44,8 +50,31 @@ const Profile = () => {
     );
   }
 
-  if (!user || !profile) {
+  if (!user) {
     return null;
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-2xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your profile isn’t ready yet</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                We couldn’t load your profile details. This is usually fixed by refreshing once.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button onClick={() => window.location.reload()}>Retry</Button>
+                <Button variant="outline" onClick={() => navigate("/app")}>Back to Workspace</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   const displayName = profile.display_name || user.email?.split("@")[0] || "User";

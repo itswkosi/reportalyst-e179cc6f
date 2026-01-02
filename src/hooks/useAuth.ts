@@ -14,13 +14,21 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Update last login on sign in
+        // Update last login on sign in (and ensure profile exists)
         if (event === "SIGNED_IN" && session?.user) {
+          const fallbackName = session.user.email?.split("@")[0] ?? null;
+
           setTimeout(() => {
             supabase
               .from("profiles")
-              .update({ last_login_at: new Date().toISOString() })
-              .eq("user_id", session.user.id);
+              .upsert(
+                {
+                  user_id: session.user.id,
+                  display_name: fallbackName,
+                  last_login_at: new Date().toISOString(),
+                },
+                { onConflict: "user_id" }
+              );
           }, 0);
         }
       }
