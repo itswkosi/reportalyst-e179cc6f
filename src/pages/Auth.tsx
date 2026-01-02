@@ -5,13 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { 
+  validatePassword, 
+  validateEmail, 
+  getAuthErrorMessage 
+} from "@/lib/passwordValidation";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [emailErrors, setEmailErrors] = useState<string[]>([]);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -34,8 +41,47 @@ const Auth = () => {
     return null;
   }
 
+  // Validate email on change
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (value) {
+      const result = validateEmail(value);
+      setEmailErrors(result.errors);
+    } else {
+      setEmailErrors([]);
+    }
+  };
+
+  // Validate password on change (only for signup)
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    if (!isLogin && value) {
+      const result = validatePassword(value);
+      setPasswordErrors(result.errors);
+    } else {
+      setPasswordErrors([]);
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate before submission
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      setEmailErrors(emailValidation.errors);
+      return;
+    }
+    
+    // For signup, validate password strength
+    if (!isLogin) {
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        setPasswordErrors(passwordValidation.errors);
+        return;
+      }
+    }
+    
     setSubmitting(true);
 
     try {
@@ -60,17 +106,29 @@ const Auth = () => {
           description: "You can now sign in.",
         });
         setIsLogin(true);
+        setPassword("");
+        setPasswordErrors([]);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const authError = error as { message: string; code?: string };
+      const friendlyMessage = getAuthErrorMessage(authError);
       toast({
         title: "Error",
-        description: error.message,
+        description: friendlyMessage,
         variant: "destructive",
       });
     } finally {
       setSubmitting(false);
     }
   };
+
+  const passwordRequirements = [
+    { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+    { label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
+    { label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
+    { label: "One number", test: (p: string) => /[0-9]/.test(p) },
+    { label: "One special character", test: (p: string) => /[^a-zA-Z0-9]/.test(p) },
+  ];
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -88,23 +146,54 @@ const Auth = () => {
               type="email"
               placeholder="Email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => handleEmailChange(e.target.value)}
               required
-              className="text-sm"
+              className={`text-sm ${emailErrors.length > 0 ? 'border-destructive' : ''}`}
             />
+            {emailErrors.length > 0 && (
+              <div className="mt-1 text-xs text-destructive flex items-start gap-1">
+                <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                <span>{emailErrors[0]}</span>
+              </div>
+            )}
           </div>
           <div>
             <Input
               type="password"
               placeholder="Password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => handlePasswordChange(e.target.value)}
               required
               minLength={6}
-              className="text-sm"
+              className={`text-sm ${passwordErrors.length > 0 ? 'border-destructive' : ''}`}
             />
+            {/* Show password requirements for signup */}
+            {!isLogin && password && (
+              <div className="mt-2 space-y-1">
+                {passwordRequirements.map((req, index) => {
+                  const isMet = req.test(password);
+                  return (
+                    <div 
+                      key={index} 
+                      className={`text-xs flex items-center gap-1 ${isMet ? 'text-green-600' : 'text-muted-foreground'}`}
+                    >
+                      {isMet ? (
+                        <CheckCircle2 className="h-3 w-3" />
+                      ) : (
+                        <div className="h-3 w-3 rounded-full border border-current" />
+                      )}
+                      <span>{req.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-          <Button type="submit" className="w-full" disabled={submitting}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={submitting || emailErrors.length > 0 || (!isLogin && passwordErrors.length > 0)}
+          >
             {submitting ? "..." : isLogin ? "Sign in" : "Create account"}
           </Button>
         </form>
