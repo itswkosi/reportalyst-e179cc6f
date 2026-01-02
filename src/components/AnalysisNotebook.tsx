@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, GripVertical, Loader2, Sparkles } from "lucide-react";
+import { Plus, Trash2, GripVertical, Loader2, Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import EditableText from "./EditableText";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,13 +7,26 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// ============================================================
+// TYPES
+// ============================================================
+
 interface AnalysisResult {
   explicit: string;
   implied: string;
   hedging: string;
 }
 
-// Debounce hook for section content updates
+interface AnalysisState {
+  status: "idle" | "loading" | "success" | "error";
+  result: AnalysisResult | null;
+  error: string | null;
+}
+
+// ============================================================
+// DEBOUNCE HOOK - For section content auto-save
+// ============================================================
+
 const useDebounce = <T,>(value: T, delay: number): T => {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
@@ -27,6 +40,10 @@ const useDebounce = <T,>(value: T, delay: number): T => {
 
   return debouncedValue;
 };
+
+// ============================================================
+// SECTION EDITOR COMPONENT
+// ============================================================
 
 const SectionEditor = ({
   section,
@@ -87,7 +104,98 @@ const SectionEditor = ({
   );
 };
 
+// ============================================================
+// ANALYSIS RESULTS DISPLAY COMPONENT
+// ============================================================
+
+const AnalysisResults = ({ state }: { state: AnalysisState }) => {
+  if (state.status === "idle") return null;
+
+  // Loading state
+  if (state.status === "loading") {
+    return (
+      <div className="bg-muted/30 rounded-lg p-4 border border-border/20 animate-pulse">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm">Analyzing report content...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state - styled with destructive colors
+  if (state.status === "error") {
+    return (
+      <div className="bg-destructive/10 rounded-lg p-4 border border-destructive/30">
+        <div className="flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+          <div>
+            <h3 className="text-sm font-medium text-destructive">Analysis Failed</h3>
+            <p className="text-xs text-destructive/80 mt-1">{state.error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Success state - styled with success colors
+  if (state.status === "success" && state.result) {
+    return (
+      <div className="bg-primary/5 rounded-lg p-4 space-y-4 border border-primary/20">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-primary" />
+          <h3 className="text-xs font-medium uppercase tracking-wide text-primary">
+            AI Analysis Results
+          </h3>
+        </div>
+        
+        <div className="space-y-3 text-sm">
+          {/* Explicit Findings */}
+          <div className="bg-background/50 rounded p-3">
+            <h4 className="text-xs font-medium text-foreground/80 mb-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              Explicit Findings
+            </h4>
+            <p className="text-muted-foreground/70 whitespace-pre-line text-xs leading-relaxed">
+              {state.result.explicit || "None stated."}
+            </p>
+          </div>
+
+          {/* Implied Concerns */}
+          <div className="bg-background/50 rounded p-3">
+            <h4 className="text-xs font-medium text-foreground/80 mb-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              Implied Concerns
+            </h4>
+            <p className="text-muted-foreground/70 whitespace-pre-line text-xs leading-relaxed">
+              {state.result.implied || "None stated."}
+            </p>
+          </div>
+
+          {/* Hedging Language */}
+          <div className="bg-background/50 rounded p-3">
+            <h4 className="text-xs font-medium text-foreground/80 mb-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+              Hedging Language
+            </h4>
+            <p className="text-muted-foreground/70 whitespace-pre-line text-xs leading-relaxed">
+              {state.result.hedging || "None stated."}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+// ============================================================
+// MAIN ANALYSIS NOTEBOOK COMPONENT
+// ============================================================
+
 const AnalysisNotebook = () => {
+  // Get workspace context - contains sections, selected analysis, etc.
   const {
     selectedAnalysis,
     selectedProject,
@@ -97,46 +205,74 @@ const AnalysisNotebook = () => {
     deleteSection,
     isSaving,
   } = useWorkspaceContext();
-  
-  const { toast } = useToast();
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
 
+  const { toast } = useToast();
+
+  // Analysis state - tracks loading, success, error states
+  const [analysisState, setAnalysisState] = useState<AnalysisState>({
+    status: "idle",
+    result: null,
+    error: null,
+  });
+
+  // ============================================================
+  // ANALYZE REPORT HANDLER
+  // Calls the analyze-report Edge Function with section content
+  // ============================================================
   const handleAnalyzeReport = async () => {
-    // Combine all section content
+    // Prevent multiple simultaneous requests
+    if (analysisState.status === "loading") return;
+
+    // Combine all section content into a single report text
+    // Format: "Section Title\nSection Content" for each section
     const reportText = sections
       .map((s) => `${s.title}\n${s.content || ""}`)
       .join("\n\n")
       .trim();
 
+    // Validate minimum content length (Edge Function requires >= 10 chars)
     if (reportText.length < 10) {
-      toast({
-        title: "Not enough content",
-        description: "Add more content to your sections before analyzing.",
-        variant: "destructive",
+      setAnalysisState({
+        status: "error",
+        result: null,
+        error: "Not enough content. Add more text to your sections before analyzing (minimum 10 characters).",
       });
       return;
     }
 
-    setIsAnalyzing(true);
-    setAnalysisResult(null);
+    // Set loading state
+    setAnalysisState({
+      status: "loading",
+      result: null,
+      error: null,
+    });
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
+      // ============================================================
+      // AUTHENTICATION CHECK
+      // Get current session and access token for authenticated request
+      // ============================================================
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        throw new Error("Failed to get authentication session");
+      }
+
       const token = sessionData?.session?.access_token;
 
       if (!token) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to analyze reports.",
-          variant: "destructive",
+        setAnalysisState({
+          status: "error",
+          result: null,
+          error: "Authentication required. Please sign in to analyze reports.",
         });
-        setIsAnalyzing(false);
         return;
       }
 
-      console.log("Calling analyze-report with token present:", !!token);
-
+      // ============================================================
+      // CALL EDGE FUNCTION
+      // Invoke the analyze-report function with explicit auth header
+      // ============================================================
       const { data, error } = await supabase.functions.invoke("analyze-report", {
         body: { reportText },
         headers: {
@@ -144,42 +280,79 @@ const AnalysisNotebook = () => {
         },
       });
 
-      console.log("Response:", { data, error });
-
+      // ============================================================
+      // ERROR HANDLING
+      // Check for Edge Function errors or error responses
+      // ============================================================
       if (error) {
-        console.error("Edge function error:", error);
-        const errorMessage = error.message || "Analysis failed";
-        throw new Error(errorMessage);
+        console.error("Edge function invocation error:", error);
+        throw new Error(error.message || "Failed to connect to analysis service");
       }
 
-      // Check if the response contains an error field
+      // Check if the response body contains an error
       if (data?.error) {
         throw new Error(data.error);
       }
 
-      setAnalysisResult(data);
+      // ============================================================
+      // PARSE RESPONSE
+      // Safely extract analysis results from response
+      // ============================================================
+      const result: AnalysisResult = {
+        explicit: data?.explicit || "",
+        implied: data?.implied || "",
+        hedging: data?.hedging || "",
+      };
+
+      // Set success state with parsed results
+      setAnalysisState({
+        status: "success",
+        result,
+        error: null,
+      });
+
       toast({
         title: "Analysis complete",
         description: "Report has been analyzed successfully.",
       });
-    } catch (err: any) {
+
+    } catch (err: unknown) {
+      // ============================================================
+      // CATCH ALL ERRORS
+      // Handle network errors, parsing errors, unexpected errors
+      // ============================================================
       console.error("Analysis error:", err);
+      
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : "An unexpected error occurred. Please try again.";
+
+      setAnalysisState({
+        status: "error",
+        result: null,
+        error: errorMessage,
+      });
+
       toast({
         title: "Analysis failed",
-        description: err.message || "Unable to analyze report. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
+  // Memoize section update handler to prevent unnecessary re-renders
   const handleUpdateSection = useCallback(
     (id: string, updates: { title?: string; content?: string }) => {
       updateSection(id, updates);
     },
     [updateSection]
   );
+
+  // ============================================================
+  // EMPTY STATES
+  // Show appropriate messages when no project/analysis selected
+  // ============================================================
 
   if (!selectedProject) {
     return (
@@ -203,16 +376,20 @@ const AnalysisNotebook = () => {
     );
   }
 
+  // ============================================================
+  // MAIN RENDER
+  // ============================================================
+
   return (
     <article className="space-y-8">
-      {/* Analysis title */}
+      {/* Analysis Header with Title and Analyze Button */}
       <header className="border-b border-border/20 pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <EditableText
               value={selectedAnalysis.name}
-              onSave={(name) => {
-                // This is handled by sidebar
+              onSave={() => {
+                // Title editing is handled by sidebar
               }}
               placeholder="Untitled Analysis"
               className="text-lg font-serif text-foreground"
@@ -221,53 +398,29 @@ const AnalysisNotebook = () => {
               <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/50" />
             )}
           </div>
+
+          {/* Analyze Report Button - disabled while loading or no sections */}
           <Button
             variant="outline"
             size="sm"
             onClick={handleAnalyzeReport}
-            disabled={isAnalyzing || sections.length === 0}
+            disabled={analysisState.status === "loading" || sections.length === 0}
             className="text-xs h-7"
           >
-            {isAnalyzing ? (
+            {analysisState.status === "loading" ? (
               <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
             ) : (
               <Sparkles className="h-3 w-3 mr-1.5" />
             )}
-            {isAnalyzing ? "Analyzing..." : "Analyze Report"}
+            {analysisState.status === "loading" ? "Analyzing..." : "Analyze Report"}
           </Button>
         </div>
       </header>
 
-      {/* Analysis Results */}
-      {analysisResult && (
-        <section className="bg-muted/30 rounded-lg p-4 space-y-4 border border-border/20">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
-            AI Analysis Results
-          </h3>
-          <div className="space-y-3 text-sm">
-            <div>
-              <h4 className="text-xs font-medium text-foreground/80 mb-1">Explicit Findings</h4>
-              <p className="text-muted-foreground/70 whitespace-pre-line text-xs leading-relaxed">
-                {analysisResult.explicit || "None stated."}
-              </p>
-            </div>
-            <div>
-              <h4 className="text-xs font-medium text-foreground/80 mb-1">Implied Concerns</h4>
-              <p className="text-muted-foreground/70 whitespace-pre-line text-xs leading-relaxed">
-                {analysisResult.implied || "None stated."}
-              </p>
-            </div>
-            <div>
-              <h4 className="text-xs font-medium text-foreground/80 mb-1">Hedging Language</h4>
-              <p className="text-muted-foreground/70 whitespace-pre-line text-xs leading-relaxed">
-                {analysisResult.hedging || "None stated."}
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Analysis Results Display - shows below header */}
+      <AnalysisResults state={analysisState} />
 
-      {/* Sections */}
+      {/* Sections List */}
       {sections.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground/50">
           <p className="text-sm mb-4">This analysis is empty</p>
@@ -291,7 +444,7 @@ const AnalysisNotebook = () => {
         </div>
       )}
 
-      {/* Add section button */}
+      {/* Add Section Button */}
       <button
         onClick={() => createSection()}
         className="flex items-center gap-2 text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors py-2"
