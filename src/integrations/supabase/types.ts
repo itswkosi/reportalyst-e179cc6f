@@ -118,7 +118,6 @@ export type Database = {
         Row: {
           created_at: string
           display_name: string | null
-          email: string | null
           id: string
           last_login_at: string | null
           last_project_id: string | null
@@ -129,7 +128,6 @@ export type Database = {
         Insert: {
           created_at?: string
           display_name?: string | null
-          email?: string | null
           id?: string
           last_login_at?: string | null
           last_project_id?: string | null
@@ -140,7 +138,6 @@ export type Database = {
         Update: {
           created_at?: string
           display_name?: string | null
-          email?: string | null
           id?: string
           last_login_at?: string | null
           last_project_id?: string | null
