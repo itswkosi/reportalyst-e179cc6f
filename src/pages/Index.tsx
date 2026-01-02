@@ -5,6 +5,7 @@ import ContextPanel from "@/components/ContextPanel";
 import AnalysisNotebook from "@/components/AnalysisNotebook";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/hooks/useAuth";
+import { Loader2 } from "lucide-react";
 
 const WorkspaceContent = () => {
   return (
@@ -32,8 +33,9 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading...</p>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Loading workspace...</p>
       </div>
     );
   }

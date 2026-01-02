@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useToast } from "./use-toast";
 
 export interface Project {
   id: string;
@@ -36,6 +37,7 @@ export interface Section {
 
 export const useWorkspace = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null);
@@ -43,17 +45,29 @@ export const useWorkspace = () => {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch projects
   const fetchProjects = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("projects")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setProjects(data || []);
-    setLoading(false);
-  }, [user]);
+    try {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      setProjects(data || []);
+    } catch (error) {
+      toast({
+        title: "Failed to load projects",
+        description: "Please try refreshing the page",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [user, toast]);
 
   // Fetch analyses and datasets for selected project
   const fetchProjectContent = useCallback(async () => {
@@ -63,22 +77,33 @@ export const useWorkspace = () => {
       return;
     }
 
-    const [analysesRes, datasetsRes] = await Promise.all([
-      supabase
-        .from("analyses")
-        .select("*")
-        .eq("project_id", selectedProjectId)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("datasets")
-        .select("*")
-        .eq("project_id", selectedProjectId)
-        .order("created_at", { ascending: true }),
-    ]);
+    try {
+      const [analysesRes, datasetsRes] = await Promise.all([
+        supabase
+          .from("analyses")
+          .select("*")
+          .eq("project_id", selectedProjectId)
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("datasets")
+          .select("*")
+          .eq("project_id", selectedProjectId)
+          .order("created_at", { ascending: true }),
+      ]);
 
-    setAnalyses(analysesRes.data || []);
-    setDatasets(datasetsRes.data || []);
-  }, [selectedProjectId]);
+      if (analysesRes.error) throw analysesRes.error;
+      if (datasetsRes.error) throw datasetsRes.error;
+
+      setAnalyses(analysesRes.data || []);
+      setDatasets(datasetsRes.data || []);
+    } catch (error) {
+      toast({
+        title: "Failed to load project content",
+        description: "Please try selecting the project again",
+        variant: "destructive",
+      });
+    }
+  }, [selectedProjectId, toast]);
 
   // Fetch sections for selected analysis
   const fetchSections = useCallback(async () => {
@@ -87,13 +112,23 @@ export const useWorkspace = () => {
       return;
     }
 
-    const { data } = await supabase
-      .from("sections")
-      .select("*")
-      .eq("analysis_id", selectedAnalysisId)
-      .order("section_order", { ascending: true });
-    setSections(data || []);
-  }, [selectedAnalysisId]);
+    try {
+      const { data, error } = await supabase
+        .from("sections")
+        .select("*")
+        .eq("analysis_id", selectedAnalysisId)
+        .order("section_order", { ascending: true });
+      
+      if (error) throw error;
+      setSections(data || []);
+    } catch (error) {
+      toast({
+        title: "Failed to load sections",
+        description: "Please try selecting the analysis again",
+        variant: "destructive",
+      });
+    }
+  }, [selectedAnalysisId, toast]);
 
   useEffect(() => {
     fetchProjects();
@@ -110,156 +145,351 @@ export const useWorkspace = () => {
   // Project CRUD
   const createProject = async (name?: string, description?: string) => {
     if (!user) return null;
-    const { data, error } = await supabase
-      .from("projects")
-      .insert({ 
-        user_id: user.id, 
-        name: name || "Untitled Project",
-        description 
-      })
-      .select()
-      .single();
-    if (!error && data) {
+    setIsSaving(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from("projects")
+        .insert({ 
+          user_id: user.id, 
+          name: name || "Untitled Project",
+          description 
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      // Optimistically add to start of list
       setProjects((prev) => [data, ...prev]);
       setSelectedProjectId(data.id);
+      
+      toast({
+        title: "Project created",
+        description: `"${data.name}" has been created`,
+      });
+      
+      return data;
+    } catch (error) {
+      toast({
+        title: "Failed to create project",
+        description: "Please try again",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsSaving(false);
     }
-    return data;
   };
 
   const updateProject = async (id: string, updates: Partial<Pick<Project, "name" | "description" | "is_public">>) => {
-    const { error } = await supabase
-      .from("projects")
-      .update(updates)
-      .eq("id", id);
-    if (!error) {
-      setProjects((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
-      );
+    // Optimistic update
+    const previousProjects = [...projects];
+    setProjects((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+    );
+    
+    try {
+      const { error } = await supabase
+        .from("projects")
+        .update(updates)
+        .eq("id", id);
+      
+      if (error) throw error;
+    } catch (error) {
+      // Rollback on error
+      setProjects(previousProjects);
+      toast({
+        title: "Failed to update project",
+        description: "Your changes could not be saved",
+        variant: "destructive",
+      });
     }
   };
 
   const deleteProject = async (id: string) => {
-    await supabase.from("projects").delete().eq("id", id);
+    // Optimistic update
+    const previousProjects = [...projects];
     setProjects((prev) => prev.filter((p) => p.id !== id));
+    
     if (selectedProjectId === id) {
       setSelectedProjectId(null);
       setSelectedAnalysisId(null);
+    }
+    
+    try {
+      const { error } = await supabase.from("projects").delete().eq("id", id);
+      if (error) throw error;
+      
+      toast({
+        title: "Project deleted",
+      });
+    } catch (error) {
+      // Rollback on error
+      setProjects(previousProjects);
+      toast({
+        title: "Failed to delete project",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
   // Analysis CRUD
   const createAnalysis = async (name?: string) => {
     if (!selectedProjectId) return null;
-    const { data, error } = await supabase
-      .from("analyses")
-      .insert({ project_id: selectedProjectId, name: name || "New Analysis" })
-      .select()
-      .single();
-    if (!error && data) {
+    setIsSaving(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from("analyses")
+        .insert({ project_id: selectedProjectId, name: name || "New Analysis" })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
       setAnalyses((prev) => [...prev, data]);
       setSelectedAnalysisId(data.id);
+      
+      return data;
+    } catch (error) {
+      toast({
+        title: "Failed to create analysis",
+        description: "Please try again",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsSaving(false);
     }
-    return data;
   };
 
   const updateAnalysis = async (id: string, name: string) => {
-    const { error } = await supabase
-      .from("analyses")
-      .update({ name })
-      .eq("id", id);
-    if (!error) {
-      setAnalyses((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, name } : a))
-      );
+    // Optimistic update
+    const previousAnalyses = [...analyses];
+    setAnalyses((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, name } : a))
+    );
+    
+    try {
+      const { error } = await supabase
+        .from("analyses")
+        .update({ name })
+        .eq("id", id);
+      
+      if (error) throw error;
+    } catch (error) {
+      // Rollback
+      setAnalyses(previousAnalyses);
+      toast({
+        title: "Failed to update analysis",
+        description: "Your changes could not be saved",
+        variant: "destructive",
+      });
     }
   };
 
   const deleteAnalysis = async (id: string) => {
-    await supabase.from("analyses").delete().eq("id", id);
+    // Optimistic update
+    const previousAnalyses = [...analyses];
     setAnalyses((prev) => prev.filter((a) => a.id !== id));
+    
     if (selectedAnalysisId === id) {
       setSelectedAnalysisId(null);
+    }
+    
+    try {
+      const { error } = await supabase.from("analyses").delete().eq("id", id);
+      if (error) throw error;
+    } catch (error) {
+      // Rollback
+      setAnalyses(previousAnalyses);
+      toast({
+        title: "Failed to delete analysis",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
   // Dataset CRUD
   const createDataset = async (name?: string) => {
     if (!selectedProjectId) return null;
-    const { data, error } = await supabase
-      .from("datasets")
-      .insert({ project_id: selectedProjectId, name: name || "Untitled Dataset" })
-      .select()
-      .single();
-    if (!error && data) {
+    setIsSaving(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from("datasets")
+        .insert({ project_id: selectedProjectId, name: name || "Untitled Dataset" })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
       setDatasets((prev) => [...prev, data]);
+      return data;
+    } catch (error) {
+      toast({
+        title: "Failed to create dataset",
+        description: "Please try again",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsSaving(false);
     }
-    return data;
   };
 
   const updateDataset = async (id: string, updates: Partial<Pick<Dataset, "name" | "description">>) => {
-    const { error } = await supabase
-      .from("datasets")
-      .update(updates)
-      .eq("id", id);
-    if (!error) {
-      setDatasets((prev) =>
-        prev.map((d) => (d.id === id ? { ...d, ...updates } : d))
-      );
+    // Optimistic update
+    const previousDatasets = [...datasets];
+    setDatasets((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, ...updates } : d))
+    );
+    
+    try {
+      const { error } = await supabase
+        .from("datasets")
+        .update(updates)
+        .eq("id", id);
+      
+      if (error) throw error;
+    } catch (error) {
+      // Rollback
+      setDatasets(previousDatasets);
+      toast({
+        title: "Failed to update dataset",
+        description: "Your changes could not be saved",
+        variant: "destructive",
+      });
     }
   };
 
   const deleteDataset = async (id: string) => {
-    await supabase.from("datasets").delete().eq("id", id);
+    // Optimistic update
+    const previousDatasets = [...datasets];
     setDatasets((prev) => prev.filter((d) => d.id !== id));
+    
+    try {
+      const { error } = await supabase.from("datasets").delete().eq("id", id);
+      if (error) throw error;
+    } catch (error) {
+      // Rollback
+      setDatasets(previousDatasets);
+      toast({
+        title: "Failed to delete dataset",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
   };
 
   // Section CRUD
   const createSection = async (title?: string) => {
     if (!selectedAnalysisId) return null;
+    setIsSaving(true);
+    
     const maxOrder = sections.reduce((max, s) => Math.max(max, s.section_order), -1);
-    const { data, error } = await supabase
-      .from("sections")
-      .insert({
-        analysis_id: selectedAnalysisId,
-        title: title || "New Section",
-        section_order: maxOrder + 1,
-      })
-      .select()
-      .single();
-    if (!error && data) {
+    
+    try {
+      const { data, error } = await supabase
+        .from("sections")
+        .insert({
+          analysis_id: selectedAnalysisId,
+          title: title || "New Section",
+          section_order: maxOrder + 1,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
       setSections((prev) => [...prev, data]);
+      return data;
+    } catch (error) {
+      toast({
+        title: "Failed to create section",
+        description: "Please try again",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsSaving(false);
     }
-    return data;
   };
 
   const updateSection = async (id: string, updates: Partial<Pick<Section, "title" | "content" | "section_order">>) => {
-    const { error } = await supabase
-      .from("sections")
-      .update(updates)
-      .eq("id", id);
-    if (!error) {
-      setSections((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
-      );
+    // Optimistic update
+    const previousSections = [...sections];
+    setSections((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
+    );
+    
+    try {
+      const { error } = await supabase
+        .from("sections")
+        .update(updates)
+        .eq("id", id);
+      
+      if (error) throw error;
+    } catch (error) {
+      // Rollback
+      setSections(previousSections);
+      toast({
+        title: "Failed to update section",
+        description: "Your changes could not be saved",
+        variant: "destructive",
+      });
     }
   };
 
   const deleteSection = async (id: string) => {
-    await supabase.from("sections").delete().eq("id", id);
+    // Optimistic update
+    const previousSections = [...sections];
     setSections((prev) => prev.filter((s) => s.id !== id));
+    
+    try {
+      const { error } = await supabase.from("sections").delete().eq("id", id);
+      if (error) throw error;
+    } catch (error) {
+      // Rollback
+      setSections(previousSections);
+      toast({
+        title: "Failed to delete section",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
   };
 
   const reorderSections = async (reorderedSections: Section[]) => {
+    // Optimistic update
+    const previousSections = [...sections];
     setSections(reorderedSections);
-    const updates = reorderedSections.map((s, i) => ({
-      id: s.id,
-      section_order: i,
-    }));
-    for (const update of updates) {
-      await supabase
-        .from("sections")
-        .update({ section_order: update.section_order })
-        .eq("id", update.id);
+    
+    try {
+      const updates = reorderedSections.map((s, i) => ({
+        id: s.id,
+        section_order: i,
+      }));
+      
+      for (const update of updates) {
+        const { error } = await supabase
+          .from("sections")
+          .update({ section_order: update.section_order })
+          .eq("id", update.id);
+        
+        if (error) throw error;
+      }
+    } catch (error) {
+      // Rollback
+      setSections(previousSections);
+      toast({
+        title: "Failed to reorder sections",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
@@ -278,6 +508,7 @@ export const useWorkspace = () => {
     datasets,
     sections,
     loading,
+    isSaving,
     createProject,
     updateProject,
     deleteProject,
@@ -291,5 +522,6 @@ export const useWorkspace = () => {
     updateSection,
     deleteSection,
     reorderSections,
+    refetch: fetchProjects,
   };
 };
