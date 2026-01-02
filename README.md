@@ -1,73 +1,64 @@
-# Welcome to your Lovable project
+# Reportalyst
 
-## Project info
+Clarifying ambiguity in pancreatic cancer radiology reports
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+# *Problem*
 
-## How can I edit this code?
+Radiology reports for suspected pancreatic ductal adenocarcinoma (PDAC) are intentionally cautious.
+They rely on hedged language such as “suspicious for,” “cannot exclude,” or “likely consistent with.”
 
-There are several ways of editing your application.
+For clinicians, the challenge is not missing information, but correctly interpreting uncertainty under time pressure.
+Important signals, implied concerns, and legal hedging are often blended together in dense text, increasing cognitive load and the risk of misinterpretation.
 
-**Use Lovable**
+This problem shows up daily and is rarely addressed because it does not involve prediction or diagnosis, just clarity.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+What this project does
 
-Changes made via Lovable will be committed automatically to this repo.
+Reportalyst takes a PDAC-related radiology report excerpt and separates the language into three fixed categories:
 
-**Use your preferred IDE**
+- Explicit findings: Facts directly stated or observed in the report.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Implied concerns: Reasonable concerns suggested by wording, without certainty.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Hedging / non-actionable language: Cautious or legal phrasing that does not state a clinical finding.
 
-Follow these steps:
+The tool does not add new information, recommend actions, or provide medical advice.
+It restructures existing text to reduce mental effort during interpretation.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+This is a language clarification tool, not a clinical decision system.
+In pancreatic cancer care, uncertainty is unavoidable.
+What is avoidable is the repeated cognitive work of mentally disentangling what a report definitively says from what it cautiously implies.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Reportalyst externalizes that interpretation step so clinicians can spend less time parsing language and more time making informed decisions.
 
-# Step 3: Install the necessary dependencies.
-npm i
+*Example*
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+Input (radiology report excerpt):
 
-**Edit a file directly in GitHub**
+“There is a 2.1 cm hypodense lesion in the pancreatic head suspicious for adenocarcinoma. No definite vascular involvement is identified, though early encasement cannot be excluded.”
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Output:
 
-**Use GitHub Codespaces**
+Explicit findings: Hypodense lesion identified in the pancreatic head, Lesion measures 2.1 cm, No definite vascular involvement observed
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Implied concerns: Suspicion of malignancy, Possible early vascular involvement
 
-## What technologies are used for this project?
+Hedging / non-actionable language: “Suspicious for”, “Cannot be excluded”
 
-This project is built with:
+Deployment: Hosted through the builder platform
+
+The UI and workflow are built in a managed environment, so the core logic is documented through prompts and examples rather than a traditional frontend codebase.
+Built as a solo project during a 48-hour hackathon, aligned with the Biological Computing track, with a focus on AI-assisted clarity in pancreatic cancer workflows.
+Future directions (out of scope for this hackathon)
+Support for additional report types (pathology, guideline excerpts)
+Highlighting uncertainty density across reports
+Integration into existing clinical documentation workflows
+No diagnostic or treatment functionality is planned.
+
+This project is built with Lovable using:
 
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
