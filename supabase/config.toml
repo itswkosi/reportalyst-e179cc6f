@@ -2,3 +2,15 @@ project_id = "lbvbobmcpnaxcpqxkoxy"
 
 [functions.analyze-report]
 verify_jwt = false
+
+[functions.api-users]
+verify_jwt = false
+
+[functions.api-projects]
+verify_jwt = false
+
+[functions.api-analyses]
+verify_jwt = false
+
+[functions.api-sections]
+verify_jwt = false
