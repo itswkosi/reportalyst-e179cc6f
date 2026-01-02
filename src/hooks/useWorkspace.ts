@@ -8,7 +8,7 @@ export interface Project {
   id: string;
   name: string;
   description: string | null;
-  share_token: string;
+  share_token: string | null;
   is_public: boolean;
   created_at: string;
 }

@@ -32,11 +32,10 @@ const SharedProject = () => {
   const fetchProject = useCallback(async () => {
     if (!shareToken) return;
 
+    // Use the secure RPC function to validate share token
+    // This never exposes share_token values in queries
     const { data: projectData, error: projectError } = await supabase
-      .from("projects")
-      .select("*")
-      .eq("share_token", shareToken)
-      .eq("is_public", true)
+      .rpc("get_project_by_share_token", { token: shareToken })
       .maybeSingle();
 
     if (projectError || !projectData) {

@@ -10,7 +10,14 @@ const ContextPanel = () => {
   const { toast } = useToast();
 
   const handleShare = () => {
-    if (!selectedProject) return;
+    if (!selectedProject || !selectedProject.share_token) {
+      toast({
+        title: "Unable to share",
+        description: "Share token not available",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const shareUrl = `${window.location.origin}/shared/${selectedProject.share_token}`;
     navigator.clipboard.writeText(shareUrl);
