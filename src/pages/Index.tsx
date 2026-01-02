@@ -35,7 +35,7 @@ const Index = () => {
         </main>
 
         {/* Right Context Panel */}
-        <ContextPanel hasResults={false} />
+        <ContextPanel />
       </div>
     </div>
   );

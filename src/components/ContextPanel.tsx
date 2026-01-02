@@ -1,108 +1,120 @@
-import { cn } from "@/lib/utils";
-import { Check, AlertTriangle } from "lucide-react";
+import { Check, AlertTriangle, Circle } from "lucide-react";
 
-interface ContextPanelProps {
-  hasResults: boolean;
-}
-
-const ContextPanel = ({ hasResults }: ContextPanelProps) => {
+const ContextPanel = () => {
   return (
-    <aside className="w-72 shrink-0 border-l border-border/50 bg-card/30 overflow-y-auto">
-      <div className="p-4 border-b border-border/50">
-        <h2 className="text-sm font-semibold text-foreground">Context Panel</h2>
+    <aside className="w-72 shrink-0 border-l border-border/30 bg-background/50 overflow-y-auto">
+      <div className="p-4 border-b border-border/30">
+        <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+          Context & Safety
+        </h2>
       </div>
 
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-5">
         {/* Model Snapshot */}
-        <section className="bg-card/60 rounded-lg p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-            Analysis Snapshot
+        <section>
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
+            Model Snapshot
           </h3>
-          <div className="space-y-2 text-sm">
+          <div className="space-y-1.5 text-xs">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Model</span>
-              <span className="font-medium text-foreground">Gemini 2.5</span>
+              <span className="text-muted-foreground">Seed</span>
+              <span className="font-mono text-foreground/70">42</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Type</span>
-              <span className="font-medium text-foreground">Language Analysis</span>
+              <span className="text-muted-foreground">Fold</span>
+              <span className="font-mono text-foreground/70">3 / 5</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Run ID</span>
-              <span className="font-mono text-xs text-foreground">RPT-{String(Date.now()).slice(-4)}</span>
+              <span className="font-mono text-foreground/70">RPT-0219</span>
             </div>
           </div>
         </section>
 
         {/* Assumptions */}
-        <section className="bg-card/60 rounded-lg p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+        <section>
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
             Assumptions
           </h3>
-          <ul className="space-y-2 text-sm">
+          <ul className="space-y-1.5 text-xs">
             {[
-              "Report is pancreatic-related",
-              "Text is from imaging study",
-              "No clinical context needed",
+              "Labels are correct",
+              "Masks are accurate",
+              "No site leakage",
             ].map((item, i) => (
-              <li key={i} className="flex items-start gap-2">
-                <Check className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
-                <span className="text-foreground/80">{item}</span>
+              <li key={i} className="flex items-center gap-2">
+                <Check className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                <span className="text-foreground/70">{item}</span>
               </li>
             ))}
           </ul>
         </section>
 
-        {/* Red Flags */}
-        <section className="bg-card/60 rounded-lg p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+        {/* Red Flags - Visually prominent */}
+        <section className="bg-destructive/5 border border-destructive/20 rounded-lg p-3">
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-destructive/80 mb-2">
             Red Flags
           </h3>
-          {hasResults ? (
-            <ul className="space-y-2 text-sm">
-              {[
-                "Review implied concerns carefully",
-                "Hedging may obscure findings",
-              ].map((item, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                  <span className="text-amber-700 dark:text-amber-400">{item}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">
-              Submit a report to see analysis flags
-            </p>
-          )}
+          <ul className="space-y-2 text-xs">
+            {[
+              "Single-center dataset",
+              "No external validation",
+              "Feature count > samples",
+            ].map((item, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-destructive/70 shrink-0 mt-0.5" />
+                <span className="text-destructive/90 font-medium">{item}</span>
+              </li>
+            ))}
+          </ul>
         </section>
 
-        {/* Confidence Indicator */}
-        <section className="bg-card/60 rounded-lg p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+        {/* Overall Confidence */}
+        <section>
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
             Overall Confidence
           </h3>
-          {hasResults ? (
-            <>
-              <div className="h-2 bg-muted rounded-full overflow-hidden mb-2">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: "72%",
-                    background: "linear-gradient(90deg, hsl(var(--chart-1)), hsl(var(--chart-3)))",
-                  }}
+          <div className="space-y-2">
+            {/* Confidence bar */}
+            <div className="relative">
+              <div className="flex justify-between text-[9px] text-muted-foreground/60 mb-1">
+                <span>Low</span>
+                <span>High</span>
+              </div>
+              <div className="h-1.5 bg-muted/50 rounded-full relative">
+                {/* Marker at ~50% for "Moderate" */}
+                <div 
+                  className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-foreground/60 rounded-full border-2 border-background"
+                  style={{ left: "50%" }}
                 />
               </div>
-              <p className="text-sm font-medium text-center text-foreground">Moderate</p>
-              <p className="text-xs text-muted-foreground text-center mt-1">
-                Based on language clarity and specificity
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">
-              Awaiting analysis
+              <div className="text-center mt-1.5">
+                <span className="text-xs font-medium text-foreground/80">Moderate</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+              Based on dataset diversity, validation strategy, and stability tests.
             </p>
-          )}
+          </div>
+        </section>
+
+        {/* Next Actions - De-emphasized */}
+        <section className="pt-2 border-t border-border/30">
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50 mb-2">
+            Next Actions
+          </h3>
+          <ul className="space-y-1 text-[11px] text-muted-foreground/60">
+            {[
+              "Add scanner harmonization",
+              "Test stability across folds",
+              "Compare against random forest baseline",
+            ].map((item, i) => (
+              <li key={i} className="flex items-center gap-2">
+                <Circle className="h-1.5 w-1.5 fill-muted-foreground/30 shrink-0" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
         </section>
       </div>
     </aside>
