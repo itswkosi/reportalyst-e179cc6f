@@ -37,9 +37,26 @@ serve(async (req) => {
   try {
     const { reportText } = await req.json();
 
+    // Input validation with length limits
     if (!reportText || typeof reportText !== "string") {
       return new Response(
-        JSON.stringify({ error: "reportText is required" }),
+        JSON.stringify({ error: "reportText must be a non-empty string" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const trimmedText = reportText.trim();
+    
+    if (trimmedText.length < 10) {
+      return new Response(
+        JSON.stringify({ error: "Report text too short (minimum 10 characters)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (trimmedText.length > 50000) {
+      return new Response(
+        JSON.stringify({ error: "Report text too long (maximum 50,000 characters)" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -53,7 +70,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Analyzing report, length:", reportText.length);
+    console.log("Analyzing report, length:", trimmedText.length);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -65,7 +82,7 @@ serve(async (req) => {
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: reportText },
+          { role: "user", content: trimmedText },
         ],
       }),
     });
