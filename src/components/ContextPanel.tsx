@@ -1,36 +1,59 @@
+import { useState } from "react";
 import { Link, Share2, ExternalLink } from "lucide-react";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const ContextPanel = () => {
   const { selectedProject, updateProject, selectedAnalysis, sections } = useWorkspaceContext();
   const { signOut, user } = useAuth();
   const { toast } = useToast();
+  const [isSharing, setIsSharing] = useState(false);
 
-  const handleShare = () => {
-    if (!selectedProject || !selectedProject.share_token) {
+  const handleShare = async () => {
+    if (!selectedProject) {
       toast({
         title: "Unable to share",
-        description: "Share token not available",
+        description: "No project selected",
         variant: "destructive",
       });
       return;
     }
-    
-    const shareUrl = `${window.location.origin}/shared/${selectedProject.share_token}`;
-    navigator.clipboard.writeText(shareUrl);
-    
-    // Make project public if not already
-    if (!selectedProject.is_public) {
-      updateProject(selectedProject.id, { is_public: true });
+
+    setIsSharing(true);
+    try {
+      // Fetch share token via secure RPC function
+      const { data: shareToken, error } = await supabase.rpc('get_my_project_share_token', {
+        p_project_id: selectedProject.id
+      });
+
+      if (error || !shareToken) {
+        throw new Error("Failed to get share token");
+      }
+
+      const shareUrl = `${window.location.origin}/shared/${shareToken}`;
+      await navigator.clipboard.writeText(shareUrl);
+
+      // Make project public if not already
+      if (!selectedProject.is_public) {
+        updateProject(selectedProject.id, { is_public: true });
+      }
+
+      toast({
+        title: "Link copied",
+        description: "Share link has been copied to clipboard",
+      });
+    } catch (error) {
+      toast({
+        title: "Unable to share",
+        description: "Failed to generate share link",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSharing(false);
     }
-    
-    toast({
-      title: "Link copied",
-      description: "Share link has been copied to clipboard",
-    });
   };
 
   return (

@@ -155,6 +155,38 @@ export type Database = {
           },
         ]
       }
+      project_share_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          share_token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          share_token?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          share_token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_share_tokens_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           created_at: string
@@ -162,7 +194,6 @@ export type Database = {
           id: string
           is_public: boolean | null
           name: string
-          share_token: string | null
           updated_at: string
           user_id: string
         }
@@ -172,7 +203,6 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           name?: string
-          share_token?: string | null
           updated_at?: string
           user_id: string
         }
@@ -182,7 +212,6 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           name?: string
-          share_token?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -252,6 +281,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_my_project_share_token: {
+        Args: { p_project_id: string }
+        Returns: string
+      }
       get_project_by_share_token: {
         Args: { token: string }
         Returns: {
