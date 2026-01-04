@@ -249,7 +249,7 @@ const Landing = () => {
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-sm text-muted-foreground">
-              © 2026 Reportalyst. Built for medical research.
+              © 2026 Reportalyst by Semilogo Oketola. Built for medical research.
             </div>
             <nav className="flex items-center gap-6">
               <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
