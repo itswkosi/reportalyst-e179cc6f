@@ -76,9 +76,11 @@ const Landing = () => {
               <Button size="lg" asChild>
                 <Link to="/auth" state={{ fromLanding: true, mode: "signup" }}>Get Started</Link>
               </Button>
-              <Button variant="outline" size="lg" className="gap-2">
-                <Play className="h-4 w-4" />
-                Watch Demo
+              <Button variant="outline" size="lg" className="gap-2" asChild>
+                <a href="https://www.loom.com/share/438e5889910d48f28203d333b4e13a7a" target="_blank" rel="noopener noreferrer">
+                  <Play className="h-4 w-4" />
+                  Watch Demo
+                </a>
               </Button>
             </div>
           </div>
