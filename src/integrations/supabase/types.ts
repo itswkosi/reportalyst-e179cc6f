@@ -19,9 +19,11 @@ export type Database = {
           analysis_explicit: string | null
           analysis_hedging: string | null
           analysis_implied: string | null
+          analysis_summary: string | null
           analyzed_at: string | null
           created_at: string
           id: string
+          labels: string[] | null
           name: string
           project_id: string
           updated_at: string
@@ -30,9 +32,11 @@ export type Database = {
           analysis_explicit?: string | null
           analysis_hedging?: string | null
           analysis_implied?: string | null
+          analysis_summary?: string | null
           analyzed_at?: string | null
           created_at?: string
           id?: string
+          labels?: string[] | null
           name?: string
           project_id: string
           updated_at?: string
@@ -41,9 +45,11 @@ export type Database = {
           analysis_explicit?: string | null
           analysis_hedging?: string | null
           analysis_implied?: string | null
+          analysis_summary?: string | null
           analyzed_at?: string | null
           created_at?: string
           id?: string
+          labels?: string[] | null
           name?: string
           project_id?: string
           updated_at?: string
