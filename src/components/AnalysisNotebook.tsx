@@ -1,11 +1,23 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, GripVertical, Loader2, Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, GripVertical, Loader2, Sparkles, AlertCircle, CheckCircle2, Download, Info } from "lucide-react";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 import EditableText from "./EditableText";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // ============================================================
 // TYPES
@@ -23,6 +35,14 @@ interface AnalysisState {
   result: AnalysisResult | null;
   error: string | null;
 }
+
+// Tooltip descriptions for each category
+const CATEGORY_TOOLTIPS = {
+  explicit: "Direct observations stated in the report (measurements, locations, presence/absence)",
+  implied: "Things the report suggests but doesn't confirm",
+  hedging: "Cautious phrases that limit certainty without stating a finding",
+  summary: "A simple explanation of what's certain vs. uncertain for non-medical readers",
+};
 
 // ============================================================
 // DEBOUNCE HOOK - For section content auto-save
@@ -56,6 +76,7 @@ const SectionEditor = ({
   onDelete: (id: string) => void;
 }) => {
   const [localContent, setLocalContent] = useState(section.content || "");
+  const [hasInteracted, setHasInteracted] = useState(false);
   const debouncedContent = useDebounce(localContent, 500);
 
   // Sync with parent when debounced content changes
@@ -68,7 +89,11 @@ const SectionEditor = ({
   // Reset local content when section changes
   useEffect(() => {
     setLocalContent(section.content || "");
+    setHasInteracted(false);
   }, [section.id, section.content]);
+
+  const isEmpty = !localContent.trim();
+  const shouldBounce = isEmpty && !hasInteracted;
 
   return (
     <section className="group relative">
@@ -96,14 +121,44 @@ const SectionEditor = ({
           <Textarea
             value={localContent}
             onChange={(e) => setLocalContent(e.target.value)}
-            placeholder="Write your content here..."
-            className="min-h-[80px] resize-y border-none bg-transparent p-0 text-sm font-serif leading-relaxed text-foreground/80 focus-visible:ring-0 placeholder:text-muted-foreground/40"
+            onFocus={() => setHasInteracted(true)}
+            placeholder="Type or paste report excerpt here..."
+            className={`min-h-[80px] resize-y border-none bg-transparent p-0 text-sm font-serif leading-relaxed text-foreground/80 focus-visible:ring-0 placeholder:text-muted-foreground/40 transition-transform ${shouldBounce ? 'animate-bounce-subtle' : ''}`}
           />
         </div>
       </div>
     </section>
   );
 };
+
+// ============================================================
+// CATEGORY HEADING WITH TOOLTIP
+// ============================================================
+
+const CategoryHeading = ({
+  label,
+  tooltipText,
+  dotColor,
+}: {
+  label: string;
+  tooltipText: string;
+  dotColor: string;
+}) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <h4 className="text-xs font-medium text-foreground/80 mb-1.5 flex items-center gap-1.5 cursor-help">
+          <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+          {label}
+          <Info className="h-3 w-3 text-muted-foreground/40" />
+        </h4>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs">
+        <p className="text-xs">{tooltipText}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
 
 // ============================================================
 // ANALYSIS RESULTS DISPLAY COMPONENT
@@ -115,7 +170,7 @@ const AnalysisResults = ({ state }: { state: AnalysisState }) => {
   // Loading state
   if (state.status === "loading") {
     return (
-      <div className="bg-muted/30 rounded-lg p-4 border border-border/20 animate-pulse">
+      <div className="bg-muted/30 rounded-lg p-4 border border-border/20 animate-pulse-soft">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span className="text-sm">Analyzing report content...</span>
@@ -127,7 +182,7 @@ const AnalysisResults = ({ state }: { state: AnalysisState }) => {
   // Error state - styled with destructive colors
   if (state.status === "error") {
     return (
-      <div className="bg-destructive/10 rounded-lg p-4 border border-destructive/30">
+      <div className="bg-destructive/10 rounded-lg p-4 border border-destructive/30 animate-fade-in-up">
         <div className="flex items-start gap-2">
           <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
           <div>
@@ -142,7 +197,7 @@ const AnalysisResults = ({ state }: { state: AnalysisState }) => {
   // Success state - styled with success colors
   if (state.status === "success" && state.result) {
     return (
-      <div className="bg-primary/5 rounded-lg p-4 space-y-4 border border-primary/20">
+      <div className="bg-primary/5 rounded-lg p-4 space-y-4 border border-primary/20 animate-fade-in-up">
         <div className="flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 text-primary" />
           <h3 className="text-xs font-medium uppercase tracking-wide text-primary">
@@ -153,10 +208,12 @@ const AnalysisResults = ({ state }: { state: AnalysisState }) => {
         <div className="space-y-3 text-sm">
           {/* Plain-language Summary (if present) */}
           {state.result.summary && (
-            <div className="bg-background/50 rounded p-3 border-l-2 border-primary/40">
-              <h4 className="text-xs font-medium text-foreground/80 mb-1.5">
-                Plain-language Summary
-              </h4>
+            <div className="bg-background/50 rounded p-3 border-l-2 border-primary/40 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+              <CategoryHeading
+                label="Plain-language Summary"
+                tooltipText={CATEGORY_TOOLTIPS.summary}
+                dotColor="bg-primary/60"
+              />
               <p className="text-muted-foreground/80 text-xs leading-relaxed italic">
                 {state.result.summary}
               </p>
@@ -164,33 +221,36 @@ const AnalysisResults = ({ state }: { state: AnalysisState }) => {
           )}
 
           {/* Explicit Findings */}
-          <div className="bg-background/50 rounded p-3">
-            <h4 className="text-xs font-medium text-foreground/80 mb-1.5 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-              Explicit Findings
-            </h4>
+          <div className="bg-background/50 rounded p-3 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <CategoryHeading
+              label="Explicit Findings"
+              tooltipText={CATEGORY_TOOLTIPS.explicit}
+              dotColor="bg-primary"
+            />
             <p className="text-muted-foreground/70 whitespace-pre-line text-xs leading-relaxed">
               {state.result.explicit || "None stated."}
             </p>
           </div>
 
           {/* Implied Concerns */}
-          <div className="bg-background/50 rounded p-3">
-            <h4 className="text-xs font-medium text-foreground/80 mb-1.5 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              Implied Concerns
-            </h4>
+          <div className="bg-background/50 rounded p-3 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+            <CategoryHeading
+              label="Implied Concerns"
+              tooltipText={CATEGORY_TOOLTIPS.implied}
+              dotColor="bg-amber-500"
+            />
             <p className="text-muted-foreground/70 whitespace-pre-line text-xs leading-relaxed">
               {state.result.implied || "None stated."}
             </p>
           </div>
 
           {/* Hedging Language */}
-          <div className="bg-background/50 rounded p-3">
-            <h4 className="text-xs font-medium text-foreground/80 mb-1.5 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-              Hedging Language
-            </h4>
+          <div className="bg-background/50 rounded p-3 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+            <CategoryHeading
+              label="Hedging Language"
+              tooltipText={CATEGORY_TOOLTIPS.hedging}
+              dotColor="bg-muted-foreground"
+            />
             <p className="text-muted-foreground/70 whitespace-pre-line text-xs leading-relaxed">
               {state.result.hedging || "None stated."}
             </p>
@@ -238,7 +298,7 @@ const AnalysisNotebook = () => {
           explicit: selectedAnalysis.analysis_explicit || "",
           implied: selectedAnalysis.analysis_implied || "",
           hedging: selectedAnalysis.analysis_hedging || "",
-          summary: null, // Summary not persisted to DB yet
+          summary: (selectedAnalysis as any).analysis_summary || null,
         },
         error: null,
       });
@@ -251,6 +311,44 @@ const AnalysisNotebook = () => {
       });
     }
   }, [selectedAnalysis?.id, selectedAnalysis?.analyzed_at, selectedAnalysis?.analysis_explicit, selectedAnalysis?.analysis_implied, selectedAnalysis?.analysis_hedging]);
+
+  // ============================================================
+  // EXPORT HANDLERS
+  // ============================================================
+  const handleExportCSV = () => {
+    if (analysisState.status !== "success" || !analysisState.result) return;
+
+    const { explicit, implied, hedging, summary } = analysisState.result;
+    
+    // Create CSV content
+    const csvRows = [
+      ["Category", "Content"],
+      ["Plain-language Summary", summary || "N/A"],
+      ["Explicit Findings", explicit || "None stated."],
+      ["Implied Concerns", implied || "None stated."],
+      ["Hedging Language", hedging || "None stated."],
+    ];
+
+    const csvContent = csvRows
+      .map(row => row.map(cell => `"${(cell || "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    // Download file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${selectedAnalysis?.name || "analysis"}-results.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export complete",
+      description: "Analysis results downloaded as CSV.",
+    });
+  };
 
   // ============================================================
   // ANALYZE REPORT HANDLER
@@ -373,6 +471,12 @@ const AnalysisNotebook = () => {
           analysis_hedging: result.hedging,
           analyzed_at: new Date().toISOString(),
         });
+        
+        // Also save summary separately (not in types yet)
+        await supabase
+          .from("analyses")
+          .update({ analysis_summary: result.summary })
+          .eq("id", selectedAnalysis.id);
       }
 
       // Set success state with parsed results
@@ -470,21 +574,40 @@ const AnalysisNotebook = () => {
             )}
           </div>
 
-          {/* Analyze Report Button - disabled while loading or no sections */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAnalyzeReport}
-            disabled={analysisState.status === "loading" || sections.length === 0}
-            className="text-xs h-7"
-          >
-            {analysisState.status === "loading" ? (
-              <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
-            ) : (
-              <Sparkles className="h-3 w-3 mr-1.5" />
+          <div className="flex items-center gap-2">
+            {/* Export Dropdown - only visible when analysis is complete */}
+            {analysisState.status === "success" && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-xs h-7">
+                    <Download className="h-3 w-3 mr-1.5" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportCSV}>
+                    Download as CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
-            {analysisState.status === "loading" ? "Analyzing..." : "Analyze Report"}
-          </Button>
+
+            {/* Analyze Report Button - disabled while loading or no sections */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAnalyzeReport}
+              disabled={analysisState.status === "loading" || sections.length === 0}
+              className="text-xs h-7"
+            >
+              {analysisState.status === "loading" ? (
+                <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3 mr-1.5" />
+              )}
+              {analysisState.status === "loading" ? "Analyzing..." : "Analyze Report"}
+            </Button>
+          </div>
         </div>
       </header>
 

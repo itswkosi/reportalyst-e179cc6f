@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const systemPrompt = `You are an assistant that analyzes the language of clinical radiology reports related to suspected pancreatic cancer.
+const systemPrompt = `You are an assistant that analyzes the language of clinical medical reports, including radiology, pathology, and other diagnostic reports.
 
 You are NOT diagnosing disease, predicting outcomes, or recommending clinical actions.
 

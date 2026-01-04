@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BookOpen, FolderKanban, ShieldCheck, Play, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import ParsingAnimation from "@/components/landing/ParsingAnimation";
 
 const Landing = () => {
   const { user, loading } = useAuth();
@@ -80,6 +81,11 @@ const Landing = () => {
                 Watch Demo
               </Button>
             </div>
+          </div>
+
+          {/* Parsing Animation - shows how text is categorized */}
+          <div className="mb-20">
+            <ParsingAnimation />
           </div>
 
           {/* Hero Image - Notebook Preview */}
